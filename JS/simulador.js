@@ -136,10 +136,18 @@ function mostrarResumen() {
   contenido.appendChild(lista);
 }
 
-document.getElementById("btn-formulario").addEventListener("click", function() {
-  mostrarFormulario();
-});
+window.addEventListener("DOMContentLoaded", function() {
+  const btnFormulario = document.getElementById("btn-formulario");
+  if (btnFormulario) {
+    btnFormulario.addEventListener("click", function() {
+      mostrarFormulario();
+    });
+  }
 
-document.getElementById("btn-resumen").addEventListener("click", function() {
-  mostrarResumen();
+  const btnResumen = document.getElementById("btn-resumen");
+  if (btnResumen) {
+    btnResumen.addEventListener("click", function() {
+      mostrarResumen();
+    });
+  }
 });
