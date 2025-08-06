@@ -4,14 +4,6 @@ const costoDiarioBase = 25000; // CLP
 const alojamientoOpciones = ["Hostel", "Hotel", "Airbnb"];
 const costoAlojamiento = [15000, 30000, 20000];
 
-// Función para ingresar destino
-function seleccionarDestino() {
-  let destino = prompt(`¿A qué destino deseas viajar?\nOpciones: ${destinos.join(", ")}`);
-  while (!destinos.includes(destino)) {
-    destino = prompt("Destino no válido. Intenta nuevamente:");
-  }
-  return destino;
-}
 
 // Función para calcular el presupuesto
 function calcularPresupuesto(destino, dias, alojamiento, incluyeTour) {
@@ -22,38 +14,140 @@ function calcularPresupuesto(destino, dias, alojamiento, incluyeTour) {
 
   let total = costoBase + costoAloj + costoTour;
 
-  console.log("🧾 RESUMEN DE PRESUPUESTO");
-  console.log(`Destino: ${destino}`);
-  console.log(`Días: ${dias}`);
-  console.log(`Alojamiento: ${alojamiento} ($${costoAloj})`);
-  console.log(`Tour incluido: ${incluyeTour ? "Sí" : "No"} ($${costoTour})`);
-  console.log(`Costo Total: $${total.toLocaleString("es-CL")}`);
+  // Crear resumen en el DOM
+  let resumenDiv = document.getElementById("resumen-presupuesto");
+  if (!resumenDiv) {
+    resumenDiv = document.createElement("div");
+    resumenDiv.id = "resumen-presupuesto";
+    document.body.appendChild(resumenDiv);
+  }
+  resumenDiv.innerHTML = `
+    <h3>🧾 RESUMEN DE PRESUPUESTO</h3>
+    <ul>
+      <li><strong>Destino:</strong> ${destino}</li>
+      <li><strong>Días:</strong> ${dias}</li>
+      <li><strong>Alojamiento:</strong> ${alojamiento} ($${costoAloj})</li>
+      <li><strong>Tour incluido:</strong> ${incluyeTour ? "Sí" : "No"} ($${costoTour})</li>
+      <li><strong>Costo Total:</strong> $${total.toLocaleString("es-CL")}</li>
+    </ul>
+  `;
 
-  alert(
-    `Resumen de tu viaje a ${destino}:\n` +
-    `Días: ${dias}\n` +
-    `Alojamiento: ${alojamiento}\n` +
-    `Incluye tour: ${incluyeTour ? "Sí" : "No"}\n\n` +
-    `Costo total estimado: $${total.toLocaleString("es-CL")}`
-  );
+  // Guardar simulación en localStorage
+  let viajes = [];
+  try {
+    viajes = JSON.parse(localStorage.getItem("viajes")) || [];
+  } catch (e) {
+    viajes = [];
+  }
+  viajes.push({
+    destino,
+    dias,
+    alojamiento,
+    incluyeTour,
+    costoAloj,
+    costoTour,
+    costoTotal: total
+  });
+  localStorage.setItem("viajes", JSON.stringify(viajes));
 }
 
-// Función principal
-function iniciarSimulador() {
-  alert("¡Bienvenido al Simulador de Presupuesto de Viaje!");
+// Crear interfaz en el DOM
+function crearInterfazDOM() {
+  // Crear contenedor principal
+  let contenedor = document.createElement("div");
+  contenedor.id = "formulario-viaje";
+  contenedor.innerHTML = `
+    <h2>Simulador de Presupuesto de Viaje</h2>
+    <form id="form-simulador">
+      <label>
+        Destino:
+        <select id="input-destino" required>
+          <option value="" disabled selected>Selecciona un destino</option>
+          ${destinos.map(dest => `<option value="${dest}">${dest}</option>`).join("")}
+        </select>
+      </label>
+      <br>
+      <label>
+        Días:
+        <input type="number" id="input-dias" min="1" required>
+      </label>
+      <br>
+      <label>
+        Alojamiento:
+        <select id="input-alojamiento" required>
+          <option value="" disabled selected>Selecciona alojamiento</option>
+          ${alojamientoOpciones.map(alo => `<option value="${alo}">${alo}</option>`).join("")}
+        </select>
+      </label>
+      <br>
+      <label>
+        <input type="checkbox" id="input-tour">
+        Incluir actividades turísticas (Costo extra diario)
+      </label>
+      <br>
+      <button type="submit" id="btn-calcular">Calcular Presupuesto</button>
+    </form>
+  `;
+  return contenedor;
+}
 
-  const destino = seleccionarDestino();
-  const dias = parseInt(prompt("¿Cuántos días piensas viajar?"), 10);
+function mostrarFormulario() {
+  const contenido = document.getElementById("contenido-dinamico");
+  if (!contenido) return;
+  contenido.innerHTML = "";
+  const formulario = crearInterfazDOM();
+  contenido.appendChild(formulario);
 
-  let alojamiento = prompt(`¿Qué tipo de alojamiento prefieres?\nOpciones: ${alojamientoOpciones.join(", ")}`);
-  while (!alojamientoOpciones.includes(alojamiento)) {
-    alojamiento = prompt("Opción no válida. Intenta nuevamente:");
+  formulario.querySelector("#form-simulador").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const destino = formulario.querySelector("#input-destino").value;
+    const dias = parseInt(formulario.querySelector("#input-dias").value, 10);
+    const alojamiento = formulario.querySelector("#input-alojamiento").value;
+    const incluyeTour = formulario.querySelector("#input-tour").checked;
+    calcularPresupuesto(destino, dias, alojamiento, incluyeTour);
+  });
+}
+
+function mostrarResumen() {
+  const contenido = document.getElementById("contenido-dinamico");
+  if (!contenido) return;
+  contenido.innerHTML = "";
+
+  let viajes = [];
+  try {
+    viajes = JSON.parse(localStorage.getItem("viajes")) || [];
+  } catch (e) {
+    viajes = [];
   }
 
-  const deseaTour = confirm("¿Deseas incluir actividades turísticas? (Costo extra diario)");
+  if (viajes.length === 0) {
+    contenido.innerHTML = "<p>No hay viajes guardados.</p>";
+    return;
+  }
 
-  calcularPresupuesto(destino, dias, alojamiento, deseaTour);
+  const lista = document.createElement("ul");
+  viajes.forEach((viaje, index) => {
+    const item = document.createElement("li");
+    item.innerHTML = `
+      <strong>Viaje ${index + 1}:</strong> Destino: ${viaje.destino}, Días: ${viaje.dias}, Alojamiento: ${viaje.alojamiento}, Tour incluido: ${viaje.incluyeTour ? "Sí" : "No"}, Costo Total: $${viaje.costoTotal.toLocaleString("es-CL")}
+    `;
+    lista.appendChild(item);
+  });
+  contenido.appendChild(lista);
 }
 
-// Llamar al simulador
-iniciarSimulador();
+window.addEventListener("DOMContentLoaded", function() {
+  const btnFormulario = document.getElementById("btn-formulario");
+  if (btnFormulario) {
+    btnFormulario.addEventListener("click", function() {
+      mostrarFormulario();
+    });
+  }
+
+  const btnResumen = document.getElementById("btn-resumen");
+  if (btnResumen) {
+    btnResumen.addEventListener("click", function() {
+      mostrarResumen();
+    });
+  }
+});
