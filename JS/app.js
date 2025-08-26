@@ -67,14 +67,66 @@ function safe(v, fallback = "—") {
 // =======================
 // MODO OSCURO
 // =======================
-(function bindDarkMode() {
+
+// Función para cambiar el tema
+function toggleDarkMode() {
+  const html = document.documentElement;
+  const isDark = html.classList.contains("dark");
+  
+  if (isDark) {
+    html.classList.remove("dark");
+    localStorage.setItem("theme", "light");
+  } else {
+    html.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  }
+  
+  // Actualiza el texto del botón
+  updateDarkModeButton();
+}
+
+// Función para actualizar el texto del botón
+function updateDarkModeButton() {
   const btn = document.getElementById("toggle-dark");
   if (!btn) return;
-  btn.addEventListener("click", () => {
-    const html = document.documentElement;
-    html.classList.toggle("dark");
-  });
-})();
+  
+  const isDark = document.documentElement.classList.contains("dark");
+  btn.textContent = isDark ? "☀️ Modo claro" : "🌙 Modo oscuro";
+}
+
+// Función para inicializar el tema
+function initDarkMode() {
+  const html = document.documentElement;
+  
+  // Obtiene el tema guardado en localStorage o usa la preferencia del sistema
+  const savedTheme = localStorage.getItem("theme");
+  
+  if (savedTheme) {
+    // Usa el tema guardado
+    if (savedTheme === "dark") {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
+  } else {
+    // Usa la preferencia del sistema
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (prefersDark) {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
+  }
+  
+  // Actualiza el botón
+  updateDarkModeButton();
+  
+  // Configura el evento del botón
+  const btn = document.getElementById("toggle-dark");
+  if (btn) {
+    btn.addEventListener("click", toggleDarkMode);
+  }
+}
 
 // =======================
 // API AVIATIONSTACK
@@ -173,6 +225,26 @@ function renderVuelosDualCards(vuelos) {
     const arr = vuelo?.arrival || {};
     const fromAp = vuelo.__from_airport;
 
+    // --- Contenedor principal del vuelo ---
+    const vueloContainer = document.createElement("div");
+    vueloContainer.className = "col-span-full space-y-3";
+    
+    // --- Título del vuelo ---
+    const vueloTitulo = document.createElement("div");
+    vueloTitulo.className = "flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800";
+    vueloTitulo.innerHTML = `
+      <div class="flex items-center gap-3">
+        <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">${flightCode}</span>
+        <span class="text-sm text-gray-600 dark:text-gray-400">${airline}</span>
+      </div>
+      <span class="text-xs px-3 py-1 rounded-full text-white ${getStatusColor(st)} font-medium">${safe(st).toUpperCase()}</span>
+    `;
+    vueloContainer.appendChild(vueloTitulo);
+
+    // --- Contenedor de las dos cards ---
+    const cardsContainer = document.createElement("div");
+    cardsContainer.className = "grid grid-cols-1 lg:grid-cols-2 gap-4";
+
     // --- Card de SALIDA ---
     const depCard = document.createElement("article");
     depCard.className = "rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3";
@@ -181,7 +253,7 @@ function renderVuelosDualCards(vuelos) {
         <div class="text-sm text-gray-600 dark:text-gray-400">${airline}</div>
         <span class="text-xs px-2 py-1 rounded text-white ${getStatusColor(st)}">${safe(st).toUpperCase()}</span>
       </div>
-      <div class="text-2xl font-bold">${flightCode}</div>
+      <div class="text-xl font-bold text-indigo-600 dark:text-indigo-400">${flightCode}</div>
       <div class="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-semibold">Salida</div>
       <div class="grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -197,7 +269,7 @@ function renderVuelosDualCards(vuelos) {
         </div>
       </div>
     `;
-    grid.appendChild(depCard);
+    cardsContainer.appendChild(depCard);
 
     // --- Card de LLEGADA ---
     const arrCard = document.createElement("article");
@@ -207,7 +279,7 @@ function renderVuelosDualCards(vuelos) {
         <div class="text-sm text-gray-600 dark:text-gray-400">${airline}</div>
         <span class="text-xs px-2 py-1 rounded text-white ${getStatusColor(st)}">${safe(st).toUpperCase()}</span>
       </div>
-      <div class="text-2xl font-bold">${flightCode}</div>
+      <div class="text-xl font-bold text-indigo-600 dark:text-indigo-400">${flightCode}</div>
       <div class="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-semibold">Llegada</div>
       <div class="grid grid-cols-2 gap-3 text-sm">
         <div>
@@ -223,7 +295,11 @@ function renderVuelosDualCards(vuelos) {
         </div>
       </div>
     `;
-    grid.appendChild(arrCard);
+    cardsContainer.appendChild(arrCard);
+
+    // Agrega el contenedor completo al grid
+    vueloContainer.appendChild(cardsContainer);
+    grid.appendChild(vueloContainer);
   }
 }
 
@@ -282,6 +358,9 @@ function bindFormularioVuelos() {
 // INICIALIZACIÓN
 // =======================
 window.addEventListener("DOMContentLoaded", function() {
+  // Inicializa el modo oscuro
+  initDarkMode();
+  
   // Rellena el select de países
   populateCountries();
   
