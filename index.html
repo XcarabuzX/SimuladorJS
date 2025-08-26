@@ -1,18 +1,85 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simulador de Presupuesto de Viaje</title>
-</head>
-<body>
-  <h1>Simulador Interactivo en JavaScript</h1>
-  <div id="menu-principal">
-    <button id="btn-formulario">Llenar Formulario</button>
-    <button id="btn-resumen">Ver Resumen</button>
-  </div>
-  <div id="contenido-dinamico"></div>
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Buscador de Vuelos • Mini Proyecto</title>
 
-  <script src="./js/app.js"></script>
-</body>
+    <script>window.AVIATIONSTACK_KEY = "d93b7ca7cbcf1800ef70e8ce9850add2";</script>
+
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <link rel="stylesheet" href="./CSS/output.css">
+  </head>
+  <body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-30 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <h1 class="text-lg font-bold">✈️ Buscador de Vuelos</h1>
+        <button id="toggle-dark" class="px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-700">
+          Alternar tema
+        </button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+
+      <!-- Panel de búsqueda -->
+      <section class="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <h2 class="text-xl font-semibold mb-4">Buscar vuelos por país</h2>
+
+        <form id="form-vuelos" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <!-- País -->
+          <label class="block">
+            <span class="text-sm">País</span>
+            <select id="select-pais" class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" required>
+              <option value="" disabled selected>Selecciona un país</option>
+              <!-- Lista breve para demo; puedes ampliarla -->
+              <option value="CL">Chile</option>
+              <option value="AR">Argentina</option>
+              <option value="PE">Perú</option>
+              <option value="US">Estados Unidos</option>
+              <option value="ES">España</option>
+              <option value="BR">Brasil</option>
+              <option value="MX">México</option>
+            </select>
+          </label>
+
+          <!-- Cant. aeropuertos a consultar -->
+          <label class="block">
+            <span class="text-sm">Aeropuertos a consultar</span>
+            <input id="input-aeropuertos" type="number" min="1" max="5" value="2"
+              class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" />
+          </label>
+
+          <!-- Límite de vuelos por aeropuerto -->
+          <label class="block">
+            <span class="text-sm">Vuelos por aeropuerto</span>
+            <input id="input-limit" type="number" min="1" max="20" value="6"
+              class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" />
+          </label>
+
+          <!-- Botón buscar -->
+          <button type="submit"
+            class="h-10 md:h-11 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-medium">
+            Buscar vuelos
+          </button>
+        </form>
+
+        <!-- Estado / errores -->
+        <div id="estado-busqueda" class="mt-3 text-sm"></div>
+      </section>
+
+      <!-- Resultados -->
+      <section>
+        <h3 class="text-lg font-semibold mb-3">Resultados</h3>
+        <div id="grid-vuelos" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- Cards aquí -->
+        </div>
+      </section>
+
+    </main>
+
+    <script src="./JS/app.js" type="module"></script>
+  </body>
 </html>
