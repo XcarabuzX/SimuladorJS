@@ -151,3 +151,17 @@ window.addEventListener("DOMContentLoaded", function() {
     });
   }
 });
+
+
+//EJEMPLOS DE SOLICITUDES API:
+
+//Crea una constante con la url base de la api
+const urlBase = "https://api.openai.com/v1";
+
+//Crea una constante con la url de la api de chat
+const urlChat = `${urlBase}/chat/completions`;
+
+//Crea una constante con la url de la api de imagenes
+const urlImagenes = `${urlBase}/images/generations`;
+
+//Crea una constante con la url de la api de audio
