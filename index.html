@@ -28,35 +28,23 @@
       <section class="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
         <h2 class="text-xl font-semibold mb-4">Buscar vuelos por país</h2>
 
-        <form id="form-vuelos" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <form id="form-vuelos" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <!-- País -->
           <label class="block">
             <span class="text-sm">País</span>
             <select id="select-pais" class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" required>
-              <option value="" disabled selected>Selecciona un país</option>
-              <!-- Lista breve para demo; puedes ampliarla -->
-              <option value="CL">Chile</option>
-              <option value="AR">Argentina</option>
-              <option value="PE">Perú</option>
-              <option value="US">Estados Unidos</option>
-              <option value="ES">España</option>
-              <option value="BR">Brasil</option>
-              <option value="MX">México</option>
+              <!-- Se llena dinámicamente -->
             </select>
           </label>
 
-          <!-- Cant. aeropuertos a consultar -->
+          <!-- Estado del vuelo -->
           <label class="block">
-            <span class="text-sm">Aeropuertos a consultar</span>
-            <input id="input-aeropuertos" type="number" min="1" max="5" value="2"
-              class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" />
-          </label>
-
-          <!-- Límite de vuelos por aeropuerto -->
-          <label class="block">
-            <span class="text-sm">Vuelos por aeropuerto</span>
-            <input id="input-limit" type="number" min="1" max="20" value="6"
-              class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" />
+            <span class="text-sm">Estado del vuelo</span>
+            <select id="select-estado" class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
+              <option value="all">Todos los vuelos</option>
+              <option value="active">Vuelos activos</option>
+              <option value="landed">Vuelos terminados</option>
+            </select>
           </label>
 
           <!-- Botón buscar -->

@@ -2,6 +2,45 @@
 // CONFIGURACIÓN Y UTILIDADES
 // =======================
 
+// Lista de países disponibles en AviationStack
+const COUNTRIES = [
+  { iso2: "CL", name: "Chile" },
+  { iso2: "AR", name: "Argentina" },
+  { iso2: "PE", name: "Perú" },
+  { iso2: "CO", name: "Colombia" },
+  { iso2: "BR", name: "Brasil" },
+  { iso2: "MX", name: "México" },
+  { iso2: "US", name: "Estados Unidos" },
+  { iso2: "ES", name: "España" },
+  { iso2: "FR", name: "Francia" },
+  { iso2: "GB", name: "Reino Unido" },
+];
+
+// Rellena el select de países dinámicamente
+function populateCountries() {
+  const sel = document.getElementById("select-pais");
+  if (!sel) return;
+  
+  // Limpia opciones existentes
+  sel.innerHTML = "";
+  
+  // Agrega placeholder
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  placeholder.textContent = "Selecciona un país";
+  sel.appendChild(placeholder);
+
+  // Agrega países
+  for (const c of COUNTRIES) {
+    const opt = document.createElement("option");
+    opt.value = c.iso2;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  }
+}
+
 // API key para AviationStack
 const AVIATIONSTACK_KEY = window.AVIATIONSTACK_KEY;
 const AV_BASE = "https://api.aviationstack.com/v1";
@@ -44,9 +83,8 @@ function safe(v, fallback = "—") {
 // Función genérica para hacer peticiones a la API
 async function fetchJSON(url, params = {}) {
   const u = new URL(url);
-  // Agrega la API key
   u.searchParams.set("access_key", AVIATIONSTACK_KEY);
-  // Agrega los parámetros de la consulta
+  
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== "") u.searchParams.set(k, v);
   });
@@ -55,7 +93,6 @@ async function fetchJSON(url, params = {}) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
 
-  // Verifica si hay errores en la respuesta de la API
   if (data.error) {
     const msg = data.error?.info || JSON.stringify(data.error);
     throw new Error(msg);
@@ -64,58 +101,52 @@ async function fetchJSON(url, params = {}) {
 }
 
 // Obtiene aeropuertos de un país específico
-async function getAirportsByCountry(countryIso2, limit = 2) {
+async function getAirportsByCountry(countryIso2) {
   const data = await fetchJSON(`${AV_BASE}/airports`, {
     country_iso2: countryIso2,
-    limit: Math.min(Math.max(limit, 1), 5), // Limita entre 1 y 5
+    limit: 10, // Máximo 10 aeropuertos
   });
   // Solo retorna aeropuertos que tengan código IATA
-  const airports = (data?.data || []).filter(a => a?.iata_code);
-  return airports;
+  return (data?.data || []).filter(a => a?.iata_code);
 }
 
-// Obtiene vuelos que parten desde un aeropuerto específico
-async function getFlightsByDepartureIATA(depIata, limit = 6) {
-  const data = await fetchJSON(`${AV_BASE}/flights`, {
-    dep_iata: depIata,
-    limit: Math.min(Math.max(limit, 1), 20),
-  });
-  return data?.data || [];
-}
-
-// Función principal: busca vuelos por país
-async function buscarVuelosPorPais(countryIso2, airportsCount, flightsPerAirport) {
-  setEstado("Buscando aeropuertos del país seleccionado…");
-  const airports = await getAirportsByCountry(countryIso2, airportsCount);
-
-  if (!airports.length) {
-    setEstado("No se encontraron aeropuertos con IATA en este país.", "warn");
-    return [];
-  }
-
-  setEstado(`Se encontraron ${airports.length} aeropuerto(s). Buscando vuelos…`);
+// Obtiene vuelos de un país (máximo 10 vuelos)
+async function getFlightsByCountry(countryIso2, statusFilter = "all") {
+  const airports = await getAirportsByCountry(countryIso2);
+  if (!airports.length) return [];
 
   const allFlights = [];
+  
+  // Itera por aeropuertos hasta obtener 10 vuelos
   for (const ap of airports) {
-    const vuelos = await getFlightsByDepartureIATA(ap.iata_code, flightsPerAirport);
+    if (allFlights.length >= 10) break;
+
+    const vuelos = await fetchJSON(`${AV_BASE}/flights`, {
+      dep_iata: ap.iata_code,
+      limit: 10,
+      ...(statusFilter !== "all" ? { flight_status: statusFilter } : {}),
+    });
+
+    const data = vuelos?.data || [];
     // Agrega información del aeropuerto a cada vuelo
-    vuelos.forEach(v => v.__from_airport = ap);
-    allFlights.push(...vuelos);
+    data.forEach(v => v.__from_airport = ap);
+    allFlights.push(...data);
+
+    if (allFlights.length >= 10) break;
   }
 
-  setEstado(`Listo. Mostrando ${allFlights.length} vuelo(s).`, "ok");
-  return allFlights;
+  return allFlights.slice(0, 10);
 }
 
 // =======================
 // INTERFAZ DE USUARIO
 // =======================
 
-// Crea y muestra las tarjetas de vuelos en la grilla
-function renderVuelosCards(vuelos) {
+// Renderiza dos cards por cada vuelo: salida y llegada
+function renderVuelosDualCards(vuelos) {
   const grid = document.getElementById("grid-vuelos");
   if (!grid) return;
-
+  
   grid.innerHTML = "";
 
   if (!vuelos.length) {
@@ -123,63 +154,76 @@ function renderVuelosCards(vuelos) {
     return;
   }
 
-  for (const f of vuelos) {
-    // Extrae la información del vuelo
-    const st = f.flight_status; // scheduled, active, landed, cancelled…
-    const airline = safe(f?.airline?.name);
-    const flightCode = safe(f?.flight?.iata || f?.flight?.icao);
-    const dep = f?.departure || {};
-    const arr = f?.arrival || {};
+  // Función para obtener el color del estado del vuelo
+  const getStatusColor = (st) => {
+    switch(st) {
+      case "active": return "bg-emerald-600";
+      case "landed": return "bg-sky-600";
+      case "cancelled": return "bg-rose-600";
+      case "diverted": return "bg-amber-600";
+      default: return "bg-gray-600";
+    }
+  };
 
-    const fromAp = f.__from_airport;
-    const depCity = safe(dep?.city || fromAp?.city || fromAp?.airport_name);
-    const depIata = safe(dep?.iata || fromAp?.iata_code);
-    const depTime = safe(dep?.scheduled || dep?.estimated);
+  for (const vuelo of vuelos) {
+    const st = vuelo.flight_status;
+    const airline = safe(vuelo?.airline?.name);
+    const flightCode = safe(vuelo?.flight?.iata || vuelo?.flight?.icao);
+    const dep = vuelo?.departure || {};
+    const arr = vuelo?.arrival || {};
+    const fromAp = vuelo.__from_airport;
 
-    const arrCity = safe(arr?.city);
-    const arrIata = safe(arr?.iata);
-    const arrTime = safe(arr?.scheduled || arr?.estimated);
-
-    // Color del estado del vuelo
-    const statusColor =
-      st === "active" ? "bg-emerald-600" :
-      st === "landed" ? "bg-sky-600" :
-      st === "cancelled" ? "bg-rose-600" :
-      st === "diverted" ? "bg-amber-600" :
-      "bg-gray-600";
-
-    const card = document.createElement("article");
-    card.className =
-      "rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3";
-
-    card.innerHTML = `
+    // --- Card de SALIDA ---
+    const depCard = document.createElement("article");
+    depCard.className = "rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3";
+    depCard.innerHTML = `
       <div class="flex items-center justify-between">
         <div class="text-sm text-gray-600 dark:text-gray-400">${airline}</div>
-        <span class="text-xs px-2 py-1 rounded text-white ${statusColor}">${safe(st).toUpperCase()}</span>
+        <span class="text-xs px-2 py-1 rounded text-white ${getStatusColor(st)}">${safe(st).toUpperCase()}</span>
       </div>
-
       <div class="text-2xl font-bold">${flightCode}</div>
-
+      <div class="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-semibold">Salida</div>
       <div class="grid grid-cols-2 gap-3 text-sm">
         <div>
-          <div class="text-gray-500 dark:text-gray-400">Salida</div>
-          <div class="font-medium">${depCity} (${depIata})</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400">${depTime}</div>
+          <div class="text-gray-500 dark:text-gray-400">Aeropuerto</div>
+          <div class="font-medium">${safe(fromAp?.airport_name || dep?.airport)} (${safe(dep?.iata || fromAp?.iata_code)})</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">${safe(dep?.city || fromAp?.city)}</div>
         </div>
         <div>
-          <div class="text-gray-500 dark:text-gray-400">Llegada</div>
-          <div class="font-medium">${arrCity} ${arrIata ? `(${arrIata})` : ""}</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400">${arrTime}</div>
+          <div class="text-gray-500 dark:text-gray-400">Horario</div>
+          <div class="font-medium">${safe(dep?.scheduled)}</div>
+          ${dep?.estimated ? `<div class="text-xs text-gray-500 dark:text-gray-400">Est.: ${dep.estimated}</div>` : ""}
+          ${dep?.delay ? `<div class="text-xs text-amber-600">Retraso: +${dep.delay}m</div>` : ""}
         </div>
       </div>
-
-      ${
-        fromAp
-          ? `<div class="text-xs text-gray-500 dark:text-gray-400">Aeropuerto origen: ${safe(fromAp?.airport_name)} (${safe(fromAp?.iata_code)})</div>`
-          : ""
-      }
     `;
-    grid.appendChild(card);
+    grid.appendChild(depCard);
+
+    // --- Card de LLEGADA ---
+    const arrCard = document.createElement("article");
+    arrCard.className = "rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col gap-3";
+    arrCard.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-600 dark:text-gray-400">${airline}</div>
+        <span class="text-xs px-2 py-1 rounded text-white ${getStatusColor(st)}">${safe(st).toUpperCase()}</span>
+      </div>
+      <div class="text-2xl font-bold">${flightCode}</div>
+      <div class="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-semibold">Llegada</div>
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">Aeropuerto</div>
+          <div class="font-medium">${safe(arr?.airport)} ${arr?.iata ? `(${arr.iata})` : ""}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">${safe(arr?.city)}</div>
+        </div>
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">Horario</div>
+          <div class="font-medium">${safe(arr?.scheduled)}</div>
+          ${arr?.estimated ? `<div class="text-xs text-gray-500 dark:text-gray-400">Est.: ${arr.estimated}</div>` : ""}
+          ${arr?.delay ? `<div class="text-xs text-amber-600">Retraso: +${arr.delay}m</div>` : ""}
+        </div>
+      </div>
+    `;
+    grid.appendChild(arrCard);
   }
 }
 
@@ -196,29 +240,40 @@ function bindFormularioVuelos() {
     e.preventDefault();
 
     if (!AVIATIONSTACK_KEY) {
-      setEstado("Falta configurar tu API key (VITE_AVIATIONSTACK_KEY o window.AVIATIONSTACK_KEY).", "err");
+      setEstado("Falta configurar tu API key.", "err");
       return;
     }
 
-    const pais = document.getElementById("select-pais").value;
-    const aeropuertos = parseInt(document.getElementById("input-aeropuertos").value, 10) || 2;
-    const limite = parseInt(document.getElementById("input-limit").value, 10) || 6;
+    const pais = document.getElementById("select-pais")?.value;
+    if (!pais) {
+      setEstado("Selecciona un país.", "warn");
+      return;
+    }
 
-    // Muestra un indicador de carga
+    const estadoSel = document.getElementById("select-estado")?.value || "all";
+
+    // Muestra indicador de carga
     const grid = document.getElementById("grid-vuelos");
-    grid.innerHTML = `
-      <div class="col-span-full">
-        <div class="animate-pulse h-24 rounded bg-gray-200 dark:bg-gray-800"></div>
-      </div>
-    `;
+    if (grid) {
+      grid.innerHTML = `
+        <div class="col-span-full space-y-3">
+          <div class="animate-pulse h-24 rounded bg-gray-200 dark:bg-gray-800"></div>
+          <div class="animate-pulse h-24 rounded bg-gray-200 dark:bg-gray-800"></div>
+          <div class="animate-pulse h-24 rounded bg-gray-200 dark:bg-gray-800"></div>
+        </div>
+      `;
+    }
+    
+    setEstado("Consultando vuelos…");
 
     try {
-      const vuelos = await buscarVuelosPorPais(pais, aeropuertos, limite);
-      renderVuelosCards(vuelos);
+      const vuelos = await getFlightsByCountry(pais, estadoSel);
+      setEstado(`Mostrando ${vuelos.length} vuelo(s).`, "ok");
+      renderVuelosDualCards(vuelos);
     } catch (err) {
       console.error(err);
       setEstado(`Error al obtener datos: ${err.message}`, "err");
-      grid.innerHTML = "";
+      if (grid) grid.innerHTML = "";
     }
   });
 }
@@ -227,6 +282,9 @@ function bindFormularioVuelos() {
 // INICIALIZACIÓN
 // =======================
 window.addEventListener("DOMContentLoaded", function() {
+  // Rellena el select de países
+  populateCountries();
+  
   // Configura el formulario de vuelos
   bindFormularioVuelos();
 });
