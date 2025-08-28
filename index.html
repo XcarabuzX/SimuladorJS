@@ -1,18 +1,73 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simulador de Presupuesto de Viaje</title>
-</head>
-<body>
-  <h1>Simulador Interactivo en JavaScript</h1>
-  <div id="menu-principal">
-    <button id="btn-formulario">Llenar Formulario</button>
-    <button id="btn-resumen">Ver Resumen</button>
-  </div>
-  <div id="contenido-dinamico"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Buscador de Vuelos • Mini Proyecto</title>
 
-  <script src="./js/simulador.js"></script>
-</body>
+    <script>window.AVIATIONSTACK_KEY = "d93b7ca7cbcf1800ef70e8ce9850add2";</script>
+
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <link rel="stylesheet" href="./CSS/output.css">
+  </head>
+  <body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-30 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <h1 class="text-lg font-bold">✈️ Buscador de Vuelos</h1>
+        <button id="toggle-dark" class="px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-700">
+          🌙 Modo oscuro
+        </button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-6xl mx-auto px-4 py-6 space-y-8">
+
+      <!-- Panel de búsqueda -->
+      <section class="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <h2 class="text-xl font-semibold mb-4">Buscar vuelos por país</h2>
+
+        <form id="form-vuelos" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <!-- País -->
+          <label class="block">
+            <span class="text-sm">País</span>
+            <select id="select-pais" class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2" required>
+              <!-- Se llena dinámicamente -->
+            </select>
+          </label>
+
+          <!-- Estado del vuelo -->
+          <label class="block">
+            <span class="text-sm">Estado del vuelo</span>
+            <select id="select-estado" class="mt-1 w-full rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-2">
+              <option value="all">Todos los vuelos</option>
+              <option value="active">Vuelos activos</option>
+              <option value="landed">Vuelos terminados</option>
+            </select>
+          </label>
+
+          <!-- Botón buscar -->
+          <button type="submit"
+            class="h-10 md:h-11 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-medium">
+            Buscar vuelos
+          </button>
+        </form>
+
+        <!-- Estado / errores -->
+        <div id="estado-busqueda" class="mt-3 text-sm"></div>
+      </section>
+
+      <!-- Resultados -->
+      <section>
+        <h3 class="text-lg font-semibold mb-3">Resultados</h3>
+        <div id="grid-vuelos" class="space-y-6">
+          <!-- Cards aquí -->
+        </div>
+      </section>
+
+    </main>
+
+    <script src="./JS/app.js" type="module"></script>
+  </body>
 </html>
