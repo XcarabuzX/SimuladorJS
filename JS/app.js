@@ -45,7 +45,7 @@ function populateCountries() {
 const AVIATIONSTACK_KEY = window.AVIATIONSTACK_KEY;
 const AV_BASE = "https://api.aviationstack.com/v1";
 
-// Muestra mensajes de estado en la interfaz
+// Muestra mensajes de estado en la interfaz //Cambiar nombre de funcion a setMensaje
 function setEstado(mensaje, tipo = "info") {
   const box = document.getElementById("estado-busqueda");
   if (!box) return;
